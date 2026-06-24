@@ -686,11 +686,11 @@ nav{display:flex;align-items:center;justify-content:space-between;padding:0 28px
     <div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:20px;margin-bottom:16px">
       <div style="font-size:15px;font-weight:700;margin-bottom:12px">🔍 Consulta Rápida de NCM</div>
       <div style="display:flex;gap:8px;margin-bottom:12px">
-        <input id="ncm-desc-input" class="sim-inp" placeholder="Descreva o produto (ex: parafuso aço inox M6)" style="flex:1">
+        <input id="ncm-desc-input" class="sim-inp" placeholder="Descreva o produto (ex: parafuso aço inox M6)" style="flex:1" onkeydown="if(event.key==='Enter') consultarNCM()">
         <button onclick="consultarNCM()" style="padding:9px 18px;background:var(--accent);color:#fff;border:none;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;font-family:'Inter',sans-serif;white-space:nowrap">Classificar</button>
       </div>
       <div style="display:flex;gap:8px;margin-bottom:0">
-        <input id="ncm-code-input" class="sim-inp" placeholder="Ou informe o NCM (ex: 7318.15.00)" style="flex:1" oninput="this.value=this.value.replace(/[^0-9.]/g,'')">
+        <input id="ncm-code-input" class="sim-inp" placeholder="Ou informe o NCM (ex: 7318.15.00)" style="flex:1" oninput="this.value=this.value.replace(/[^0-9.]/g,'')" onkeydown="if(event.key==='Enter') consultarAliquotas()">
         <button onclick="consultarAliquotas()" style="padding:9px 18px;background:var(--surface2);color:var(--text);border:1px solid var(--border);border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;font-family:'Inter',sans-serif;white-space:nowrap">Buscar Alíquotas</button>
       </div>
       <div id="ncm-result" style="margin-top:12px"></div>
@@ -2076,29 +2076,60 @@ Responda APENAS em JSON válido, sem markdown, sem explicações fora do JSON:
     const clean = raw.replace(/```json|```/g, '').trim();
     const parsed = JSON.parse(clean);
 
-    result.innerHTML = `
-      <div style="background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:16px">
-        <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px">
-          <div style="font-size:20px;font-weight:800;color:var(--accent)">${parsed.ncm || '—'}</div>
-          <div style="font-size:13px;font-weight:600">${parsed.descricao_ncm || '—'}</div>
-        </div>
-        <div style="font-size:12px;color:var(--muted);margin-bottom:10px;font-style:italic">${parsed.justificativa || ''}</div>
-        <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:10px">
-          ${[['II', parsed.ii],['IPI', parsed.ipi],['PIS', parsed.pis],['COFINS', parsed.cofins]].map(([l,v])=>`
-          <div style="background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:8px;text-align:center">
-            <div style="font-size:10px;color:var(--muted);font-weight:600">${l}</div>
-            <div style="font-size:15px;font-weight:700;color:var(--accent)">${v||'—'}</div>
-          </div>`).join('')}
-        </div>
-        ${parsed.li_necessaria ? '<div style="padding:6px 10px;background:rgba(239,68,68,.08);border:1px solid rgba(239,68,68,.2);border-radius:6px;font-size:12px;color:var(--red);margin-bottom:6px">⚠️ Produto sujeito a <strong>Licença de Importação (LI)</strong></div>' : ''}
-        ${parsed.controles?.length ? `<div style="padding:6px 10px;background:rgba(249,115,22,.08);border:1px solid rgba(249,115,22,.2);border-radius:6px;font-size:12px;color:var(--accent);margin-bottom:6px">🏛️ Órgãos anuentes: <strong>${parsed.controles.join(', ')}</strong></div>` : ''}
-        ${parsed.ex_tarifario ? `<div style="padding:6px 10px;background:rgba(34,197,94,.08);border:1px solid rgba(34,197,94,.2);border-radius:6px;font-size:12px;color:var(--green);margin-bottom:6px">✅ Ex-tarifário disponível: <strong>${parsed.ex_tarifario}</strong></div>` : ''}
-        ${parsed.alertas?.length ? `<div style="margin-top:6px"><div style="font-size:11px;font-weight:600;color:var(--muted);margin-bottom:4px">ALERTAS:</div>${parsed.alertas.map(a=>`<div style="font-size:12px;padding:3px 0;color:var(--yellow)">⚠️ ${a}</div>`).join('')}</div>` : ''}
-        <div style="margin-top:10px;display:flex;gap:8px">
-          <button onclick="document.getElementById('ncm-code-input').value='${parsed.ncm||''}';consultarAliquotas()" style="padding:6px 12px;background:var(--accent);color:#fff;border:none;border-radius:6px;font-size:12px;cursor:pointer;font-family:'Inter',sans-serif">Confirmar NCM</button>
-          <a href="https://portalunico.siscomex.gov.br/classif/#/sumario?origem=menu" target="_blank" style="padding:6px 12px;background:var(--surface);border:1px solid var(--border);color:var(--text);border-radius:6px;font-size:12px;text-decoration:none;display:inline-flex;align-items:center;gap:4px">🔗 Validar no Classif</a>
-        </div>
-      </div>`;
+    const ncmVal = parsed.ncm || '—';
+    const descVal = parsed.descricao_ncm || parsed.descricao || '—';
+    const justVal = parsed.justificativa || '';
+    const iiVal = parsed.ii || '—';
+    const ipiVal = parsed.ipi || '—';
+    const pisVal = parsed.pis || '—';
+    const cofinsVal = parsed.cofins || '—';
+    const liVal = parsed.li_necessaria;
+    const controles = parsed.controles || [];
+    const exVal = parsed.ex_tarifario;
+    const alertas = parsed.alertas || [];
+
+    let html = '<div style="background:var(--surface2);border:1px solid var(--border);border-radius:12px;overflow:hidden">';
+    // Header
+    html += '<div style="padding:14px 16px;background:var(--accent);color:#fff">';
+    html += '<div style="font-size:22px;font-weight:800;letter-spacing:1px">' + ncmVal + '</div>';
+    html += '<div style="font-size:13px;font-weight:600;margin-top:4px;line-height:1.4">' + descVal + '</div>';
+    html += '</div>';
+    // Justificativa
+    if (justVal) html += '<div style="padding:10px 16px;font-size:12px;color:var(--muted);font-style:italic;border-bottom:1px solid var(--border)">' + justVal + '</div>';
+    // Alíquotas
+    html += '<div style="padding:14px 16px;border-bottom:1px solid var(--border)">';
+    html += '<div style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:10px">Alíquotas — Importação</div>';
+    html += '<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px">';
+    var tributos = [['II',iiVal,'#f97316'],['IPI',ipiVal,'#8b5cf6'],['PIS',pisVal,'#06b6d4'],['COFINS',cofinsVal,'#10b981']];
+    tributos.forEach(function(t) {
+      html += '<div style="background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:10px;text-align:center">';
+      html += '<div style="font-size:10px;color:var(--muted);font-weight:700;text-transform:uppercase;margin-bottom:4px">' + t[0] + '</div>';
+      html += '<div style="font-size:17px;font-weight:800;color:' + t[2] + '">' + t[1] + '</div>';
+      html += '</div>';
+    });
+    html += '</div></div>';
+    // Controles
+    html += '<div style="padding:10px 16px;border-bottom:1px solid var(--border)">';
+    if (liVal) {
+      html += '<div style="padding:6px 10px;background:rgba(239,68,68,.08);border:1px solid rgba(239,68,68,.2);border-radius:6px;font-size:12px;color:var(--red);margin-bottom:6px">⚠️ <strong>Licença de Importação (LI) obrigatória</strong></div>';
+    } else {
+      html += '<div style="padding:6px 10px;background:rgba(34,197,94,.08);border:1px solid rgba(34,197,94,.2);border-radius:6px;font-size:12px;color:var(--green);margin-bottom:6px">✅ Dispensa de Licença de Importação</div>';
+    }
+    if (controles.length) html += '<div style="padding:6px 10px;background:rgba(249,115,22,.08);border:1px solid rgba(249,115,22,.2);border-radius:6px;font-size:12px;color:var(--accent)">🏛️ Órgãos anuentes: <strong>' + controles.join(', ') + '</strong></div>';
+    if (exVal) html += '<div style="margin-top:6px;padding:6px 10px;background:rgba(34,197,94,.08);border:1px solid rgba(34,197,94,.2);border-radius:6px;font-size:12px;color:var(--green)">✅ Ex-tarifário: <strong>' + exVal + '</strong></div>';
+    html += '</div>';
+    // Alertas
+    if (alertas.length) {
+      html += '<div style="padding:10px 16px;border-bottom:1px solid var(--border)">';
+      alertas.forEach(function(a) { html += '<div style="font-size:12px;padding:2px 0;color:var(--yellow)">⚠️ ' + a + '</div>'; });
+      html += '</div>';
+    }
+    // Ações
+    html += '<div style="padding:12px 16px;display:flex;gap:8px;flex-wrap:wrap">';
+    html += '<button onclick="document.getElementById('ncm-code-input').value='' + ncmVal + '';consultarAliquotas()" style="padding:7px 14px;background:var(--accent);color:#fff;border:none;border-radius:7px;font-size:12px;font-weight:600;cursor:pointer;font-family:'Inter',sans-serif">Confirmar NCM</button>';
+    html += '<a href="https://portalunico.siscomex.gov.br/classif/#/sumario?perfil=publico" target="_blank" style="padding:7px 14px;background:var(--surface);border:1px solid var(--border);color:var(--text);border-radius:7px;font-size:12px;font-weight:600;text-decoration:none">🔗 Validar no Classif</a>';
+    html += '</div></div>';
+    result.innerHTML = html;
   } catch(e) {
     result.innerHTML = `<span style="color:var(--red)">❌ Erro: ${e.message}</span>`;
   }
