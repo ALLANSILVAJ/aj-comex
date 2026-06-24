@@ -256,6 +256,7 @@ nav{display:flex;align-items:center;justify-content:space-between;padding:0 28px
   <div class="nav-right">
     <span id="clock" style="font-family:'JetBrains Mono',monospace;font-size:12px;color:rgba(255,255,255,.5)"></span>
     <span id="drive-status" onclick="authorizeDrive()" title="Clique para sincronizar com Google Drive" style="font-size:11px;font-weight:600;color:#f97316;cursor:pointer;padding:5px 10px;border:1px solid rgba(249,115,22,.4);border-radius:6px;transition:all .2s;white-space:nowrap">☁️ Conectar Drive</span>
+    <button onclick="importarDados()" title="Restaurar backup" style="background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.2);color:rgba(255,255,255,.7);padding:5px 10px;border-radius:6px;font-size:12px;cursor:pointer;font-family:'Inter',sans-serif;">📂 Importar</button>
     <button onclick="exportarDados()" title="Exportar backup dos dados" style="background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.2);color:rgba(255,255,255,.7);padding:5px 10px;border-radius:6px;font-size:12px;cursor:pointer;font-family:'Inter',sans-serif;">💾 Backup</button>
     <button class="btn-new" onclick="openModal()">+ Novo Processo</button>
   </div>
@@ -2694,6 +2695,41 @@ function exportarDados() {
   a.href = URL.createObjectURL(blob);
   a.download = `ajcomex_backup_${new Date().toISOString().split('T')[0]}.json`;
   a.click();
+}
+
+function importarDados() {
+  const input = document.createElement('input');
+  input.type = 'file';
+  input.accept = '.json';
+  input.onchange = e => {
+    const file = e.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = ev => {
+      try {
+        const data = JSON.parse(ev.target.result);
+        if (!data.clientes && !data.processes) {
+          alert('Arquivo inválido — não parece um backup do AJ-COMEX.');
+          return;
+        }
+        if (!confirm('Isso vai substituir todos os dados atuais pelos do backup. Confirmar?')) return;
+        if (data.processes)    processes    = data.processes;
+        if (data.clientes)     clientes     = data.clientes;
+        if (data.analistas)    analistas    = data.analistas;
+        if (data.despachantes) despachantes = data.despachantes;
+        if (data.tradings)     tradings     = data.tradings;
+        if (data.adquirentes)  adquirentes  = data.adquirentes;
+        if (data.nextAJNumber) nextAJNumber = data.nextAJNumber;
+        saveDB();
+        renderAll();
+        showToast('✅ Backup restaurado com sucesso!');
+      } catch(err) {
+        alert('Erro ao ler o arquivo: ' + err.message);
+      }
+    };
+    reader.readAsText(file);
+  };
+  input.click();
 }
 
 // ─── RESP DROPDOWN ───────────────────────────────────────────────────────
