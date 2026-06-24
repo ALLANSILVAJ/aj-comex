@@ -181,6 +181,9 @@ nav{display:flex;align-items:center;justify-content:space-between;padding:0 28px
 .btn-save{background:var(--accent);border:none;color:#fff;padding:9px 20px;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;font-family:'Inter',sans-serif;}
 .btn-save:hover{opacity:.85;}
 .form-input[readonly]{background:#f0f4ff;color:var(--accent);font-weight:700;cursor:default;border-color:var(--accent);}
+.doc-upload-btn{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;padding:16px;background:var(--surface2);border:2px dashed var(--border);border-radius:10px;cursor:pointer;transition:all .2s;text-align:center;min-height:90px;}
+.doc-upload-btn:hover{border-color:var(--accent);background:rgba(249,115,22,.04);}
+.doc-upload-btn.loaded{border-color:var(--green);border-style:solid;background:rgba(34,197,94,.05);}
 .sim-tab{padding:7px 14px;border:1px solid var(--border);background:var(--surface);color:var(--muted);border-radius:7px;font-size:12px;font-weight:600;cursor:pointer;font-family:'Inter',sans-serif;transition:all .15s;}
 .sim-tab:hover{border-color:var(--accent);color:var(--accent);}
 .sim-tab.active{background:var(--accent);border-color:var(--accent);color:#fff;}
@@ -314,6 +317,10 @@ nav{display:flex;align-items:center;justify-content:space-between;padding:0 28px
     <button class="detail-subtab" id="subtab-simulador" onclick="showSubtab('simulador')"
       style="padding:8px 18px;border:none;background:transparent;font-family:'Inter',sans-serif;font-size:14px;font-weight:600;cursor:pointer;color:var(--muted);border-bottom:2px solid transparent;margin-bottom:-2px;">
       📊 Simulador de Custos
+    </button>
+    <button class="detail-subtab" id="subtab-docs" onclick="showSubtab('docs')"
+      style="padding:8px 18px;border:none;background:transparent;font-family:'Inter',sans-serif;font-size:14px;font-weight:600;cursor:pointer;color:var(--muted);border-bottom:2px solid transparent;margin-bottom:-2px;">
+      🤖 Docs & IA
     </button>
   </div>
 
@@ -626,6 +633,79 @@ nav{display:flex;align-items:center;justify-content:space-between;padding:0 28px
     </div><!-- end sim-panel -->
   </div><!-- end subtab-content-simulador -->
 
+
+  <!-- ── ABA DOCUMENTOS & IA ── -->
+  <div id="subtab-content-docs" style="display:none">
+
+    <!-- Upload area -->
+    <div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:24px;margin-bottom:16px">
+      <div style="font-size:15px;font-weight:700;margin-bottom:4px">📁 Documentos do Processo</div>
+      <div style="font-size:13px;color:var(--muted);margin-bottom:16px">Faça upload dos documentos (CI, Packing List, HBL, CE Mercante). A IA analisa, cruza os dados e sugere classificações NCM.</div>
+
+      <!-- Upload buttons -->
+      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:10px;margin-bottom:16px">
+        <label class="doc-upload-btn" onclick="triggerDocUpload('ci')">
+          <span style="font-size:20px">📄</span>
+          <div style="font-weight:600;font-size:13px">Commercial Invoice</div>
+          <div style="font-size:11px;color:var(--muted)">PDF ou imagem</div>
+          <input type="file" id="upload-ci" accept=".pdf,.png,.jpg,.jpeg" style="display:none" onchange="handleDocUpload(this,'ci')">
+        </label>
+        <label class="doc-upload-btn" onclick="triggerDocUpload('pl')">
+          <span style="font-size:20px">📦</span>
+          <div style="font-weight:600;font-size:13px">Packing List</div>
+          <div style="font-size:11px;color:var(--muted)">PDF ou imagem</div>
+          <input type="file" id="upload-pl" accept=".pdf,.png,.jpg,.jpeg" style="display:none" onchange="handleDocUpload(this,'pl')">
+        </label>
+        <label class="doc-upload-btn" onclick="triggerDocUpload('hbl')">
+          <span style="font-size:20px">🚢</span>
+          <div style="font-weight:600;font-size:13px">HBL / AWB</div>
+          <div style="font-size:11px;color:var(--muted)">PDF ou imagem</div>
+          <input type="file" id="upload-hbl" accept=".pdf,.png,.jpg,.jpeg" style="display:none" onchange="handleDocUpload(this,'hbl')">
+        </label>
+        <label class="doc-upload-btn" onclick="triggerDocUpload('ce')">
+          <span style="font-size:20px">⚓</span>
+          <div style="font-weight:600;font-size:13px">CE Mercante</div>
+          <div style="font-size:11px;color:var(--muted)">PDF ou imagem</div>
+          <input type="file" id="upload-ce" accept=".pdf,.png,.jpg,.jpeg" style="display:none" onchange="handleDocUpload(this,'ce')">
+        </label>
+      </div>
+
+      <!-- Loaded docs list -->
+      <div id="docs-loaded-list" style="display:none;margin-bottom:16px">
+        <div style="font-size:12px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px">Documentos carregados:</div>
+        <div id="docs-loaded-items" style="display:flex;flex-wrap:wrap;gap:8px"></div>
+      </div>
+
+      <!-- Analyze button -->
+      <button id="btn-analisar" onclick="analisarDocumentos()" style="display:none;width:100%;padding:12px;background:var(--accent);color:#fff;border:none;border-radius:8px;font-size:14px;font-weight:700;cursor:pointer;font-family:'Inter',sans-serif;transition:opacity .2s">
+        🤖 Analisar com IA — Conferir & Classificar
+      </button>
+    </div>
+
+    <!-- NCM quick search -->
+    <div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:20px;margin-bottom:16px">
+      <div style="font-size:15px;font-weight:700;margin-bottom:12px">🔍 Consulta Rápida de NCM</div>
+      <div style="display:flex;gap:8px;margin-bottom:12px">
+        <input id="ncm-desc-input" class="sim-inp" placeholder="Descreva o produto (ex: parafuso aço inox M6)" style="flex:1">
+        <button onclick="consultarNCM()" style="padding:9px 18px;background:var(--accent);color:#fff;border:none;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;font-family:'Inter',sans-serif;white-space:nowrap">Classificar</button>
+      </div>
+      <div style="display:flex;gap:8px;margin-bottom:0">
+        <input id="ncm-code-input" class="sim-inp" placeholder="Ou informe o NCM (ex: 7318.15.00)" style="flex:1" oninput="this.value=this.value.replace(/[^0-9.]/g,'')">
+        <button onclick="consultarAliquotas()" style="padding:9px 18px;background:var(--surface2);color:var(--text);border:1px solid var(--border);border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;font-family:'Inter',sans-serif;white-space:nowrap">Buscar Alíquotas</button>
+      </div>
+      <div id="ncm-result" style="margin-top:12px"></div>
+    </div>
+
+    <!-- IA Analysis result -->
+    <div id="ia-result-panel" style="display:none;background:var(--surface);border:1px solid var(--border);border-radius:12px;overflow:hidden">
+      <div style="padding:16px 20px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center">
+        <div style="font-size:15px;font-weight:700">🤖 Resultado da Análise</div>
+        <button onclick="document.getElementById('ia-result-panel').style.display='none'" style="background:none;border:none;font-size:18px;cursor:pointer;color:var(--muted)">✕</button>
+      </div>
+      <div id="ia-result-content" style="padding:20px;font-size:13px;line-height:1.7;white-space:pre-wrap;max-height:600px;overflow-y:auto"></div>
+    </div>
+
+  </div><!-- end subtab-content-docs -->
 
 </div><!-- end page-detail -->
 
@@ -1536,7 +1616,7 @@ function renderDashboard() {
 function showDetail(id) {
   currentProcId = id; editingIdx = null; addRowVisible = false;
   // Reset to processo tab
-  setTimeout(() => { showSubtab("processo"); loadSimFromProcess(id); if(document.getElementById("simcontent-dados")) { showSimTab("dados"); simCalc(); } }, 20);
+  setTimeout(() => { showSubtab("processo"); loadSimFromProcess(id); loadDocsFromProcess(id); if(document.getElementById("simcontent-dados")) { showSimTab("dados"); simCalc(); } }, 20);
   const p = processes.find(x=>x.id===id);
   showPage('detail');
   document.getElementById('detail-code').textContent = '#'+p.code;
@@ -1777,6 +1857,434 @@ function delModeloAction(idx) {
   renderModeloTabela();
 }
 
+
+
+// ─── DOCUMENTOS & IA ──────────────────────────────────────────────────────────
+const DOC_TYPES = {ci:'Commercial Invoice', pl:'Packing List', hbl:'HBL / AWB', ce:'CE Mercante'};
+let loadedDocs = {}; // {ci: {name, b64, type}, ...}
+
+function triggerDocUpload(type) {
+  document.getElementById('upload-' + type).click();
+}
+
+function handleDocUpload(input, type) {
+  const file = input.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    const b64 = e.target.result.split(',')[1];
+    const mimeType = file.type || 'application/pdf';
+    loadedDocs[type] = {name: file.name, b64, mimeType, size: file.size};
+    updateDocsUI();
+    saveDocsToProcess();
+  };
+  reader.readAsDataURL(file);
+}
+
+function updateDocsUI() {
+  const list = document.getElementById('docs-loaded-list');
+  const items = document.getElementById('docs-loaded-items');
+  const btn = document.getElementById('btn-analisar');
+  const keys = Object.keys(loadedDocs);
+
+  if (keys.length === 0) { list.style.display = 'none'; btn.style.display = 'none'; return; }
+
+  list.style.display = 'block';
+  items.innerHTML = keys.map(k => `
+    <div style="display:flex;align-items:center;gap:6px;padding:6px 12px;background:rgba(34,197,94,.08);border:1px solid rgba(34,197,94,.2);border-radius:8px;font-size:12px">
+      <span style="color:var(--green)">✓</span>
+      <span style="font-weight:600">${DOC_TYPES[k]}</span>
+      <span style="color:var(--muted)">${loadedDocs[k].name}</span>
+      <button onclick="removeDoc('${k}')" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:14px;line-height:1;padding:0 2px">✕</button>
+    </div>`).join('');
+
+  // Update upload button states
+  Object.keys(DOC_TYPES).forEach(k => {
+    const btn = document.querySelector(`label[onclick="triggerDocUpload('${k}')"]`);
+    if (btn) btn.classList.toggle('loaded', !!loadedDocs[k]);
+  });
+
+  btn.style.display = 'block';
+}
+
+function removeDoc(type) {
+  delete loadedDocs[type];
+  updateDocsUI();
+  saveDocsToProcess();
+}
+
+function saveDocsToProcess() {
+  if (!currentProcId) return;
+  const p = processes.find(x => x.id === currentProcId);
+  if (p) { p.docs = loadedDocs; saveDB(); }
+}
+
+function loadDocsFromProcess(procId) {
+  const p = processes.find(x => x.id === procId);
+  loadedDocs = (p && p.docs) ? p.docs : {};
+  updateDocsUI();
+}
+
+async function analisarDocumentos() {
+  const btn = document.getElementById('btn-analisar');
+  const panel = document.getElementById('ia-result-panel');
+  const content = document.getElementById('ia-result-content');
+  const proc = processes.find(x => x.id === currentProcId);
+
+  btn.textContent = '⏳ Analisando... aguarde';
+  btn.disabled = true;
+  panel.style.display = 'block';
+  content.textContent = 'Processando documentos com IA...';
+
+  // Build messages with all uploaded docs
+  const msgContent = [];
+
+  // Add text context
+  msgContent.push({
+    type: 'text',
+    text: `Você é um especialista em comércio exterior brasileiro com profundo conhecimento em classificação fiscal NCM, DUIMP, SISCOMEX e legislação aduaneira. 
+
+Processo: ${proc ? proc.code : '—'} | Cliente: ${proc ? proc.client : '—'} | Modalidade: ${proc ? proc.service : '—'}
+
+Analise os documentos fornecidos e execute as seguintes tarefas:
+
+1. **EXTRAÇÃO DE DADOS**: Extraia de cada documento:
+   - Exportador/Importador/Consignatário
+   - Descrição dos itens/mercadorias
+   - Quantidades e unidades
+   - Pesos bruto e líquido
+   - Valores (FOB, frete, seguro se houver)
+   - Referências (invoice nº, BL nº, etc.)
+
+2. **CONFERÊNCIA CRUZADA**: Compare os dados entre os documentos e aponte:
+   - Divergências de peso (bruto e líquido)
+   - Divergências de quantidade/volumes
+   - Divergências de valor
+   - Inconsistências nas descrições
+   - Dados faltantes que podem causar problema no desembaraço
+
+3. **CLASSIFICAÇÃO NCM**: Para cada item/mercadoria identificado:
+   - Sugira o NCM mais adequado com justificativa
+   - Indique o capítulo, posição e subposição
+   - Alerte para possíveis conflitos de classificação
+
+4. **ALERTAS ADUANEIROS**: Identifique:
+   - Produtos sujeitos a controle (INMETRO, ANVISA, MAPA, etc.)
+   - Necessidade de LI (Licença de Importação)
+   - Produtos com ex-tarifário ou regimes especiais
+   - Riscos de parametrização (canal vermelho/laranja)
+   - Irregularidades que podem gerar autuação
+
+5. **RESUMO PARA DUIMP**: Liste os dados prontos para preenchimento:
+   - Adições com NCM sugerido
+   - Valor aduaneiro estimado por adição
+   - Pesos por adição
+
+Seja preciso, objetivo e use terminologia técnica aduaneira brasileira.`
+  });
+
+  // Add document images/pdfs
+  const docNames = {ci:'Commercial Invoice', pl:'Packing List', hbl:'HBL/AWB', ce:'CE Mercante'};
+  for (const [type, doc] of Object.entries(loadedDocs)) {
+    const isImage = doc.mimeType.startsWith('image/');
+    if (isImage) {
+      msgContent.push({
+        type: 'image',
+        source: { type: 'base64', media_type: doc.mimeType, data: doc.b64 }
+      });
+    } else {
+      // PDF
+      msgContent.push({
+        type: 'document',
+        source: { type: 'base64', media_type: 'application/pdf', data: doc.b64 }
+      });
+    }
+    msgContent.push({ type: 'text', text: `[Documento acima: ${docNames[type] || type}]` });
+  }
+
+  try {
+    const res = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'anthropic-version': '2023-06-01', 'anthropic-dangerous-direct-browser-access': 'true' },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-6',
+        max_tokens: 4000,
+        messages: [{ role: 'user', content: msgContent }]
+      })
+    });
+
+    const data = await res.json();
+    const text = data.content?.map(b => b.text || '').join('') || 'Sem resposta da IA.';
+    content.textContent = text;
+
+    // Auto-extract NCMs to items table
+    const ncmMatches = [...text.matchAll(/NCM[:\s]+(\d{4}[.\s]?\d{2}[.\s]?\d{2})/gi)];
+    if (ncmMatches.length > 0) {
+      showToast(`✅ Análise concluída! ${ncmMatches.length} NCM(s) identificado(s).`);
+    } else {
+      showToast('✅ Análise concluída!');
+    }
+  } catch(e) {
+    content.textContent = '❌ Erro ao conectar com a IA: ' + e.message;
+    showToast('❌ Erro na análise');
+  }
+
+  btn.textContent = '🤖 Analisar com IA — Conferir & Classificar';
+  btn.disabled = false;
+}
+
+// ── Consulta NCM por descrição ────────────────────────────────────────────────
+async function consultarNCM() {
+  const desc = document.getElementById('ncm-desc-input').value.trim();
+  if (!desc) { showToast('Informe a descrição do produto'); return; }
+  const result = document.getElementById('ncm-result');
+  result.innerHTML = '<span style="color:var(--muted)">⏳ Consultando...</span>';
+
+  try {
+    const res = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'anthropic-version': '2023-06-01', 'anthropic-dangerous-direct-browser-access': 'true' },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-6',
+        max_tokens: 1000,
+        messages: [{
+          role: 'user',
+          content: `Você é especialista em classificação fiscal NCM para importação no Brasil.
+
+Produto: "${desc}"
+
+Responda APENAS em JSON válido, sem markdown, sem explicações fora do JSON:
+{
+  "ncm": "XXXX.XX.XX",
+  "descricao_ncm": "descrição oficial da posição",
+  "justificativa": "breve justificativa técnica",
+  "ii": "XX%",
+  "ipi": "X%",
+  "pis": "X,XX%",
+  "cofins": "X,XX%",
+  "li_necessaria": true/false,
+  "controles": ["lista de órgãos anuentes se houver"],
+  "alertas": ["alertas importantes se houver"],
+  "ex_tarifario": "número do ex se houver ou null"
+}`
+        }]
+      })
+    });
+
+    const data = await res.json();
+    const raw = data.content?.[0]?.text || '{}';
+    const clean = raw.replace(/```json|```/g, '').trim();
+    const parsed = JSON.parse(clean);
+
+    result.innerHTML = `
+      <div style="background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:16px">
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px">
+          <div style="font-size:20px;font-weight:800;color:var(--accent)">${parsed.ncm || '—'}</div>
+          <div style="font-size:13px;font-weight:600">${parsed.descricao_ncm || '—'}</div>
+        </div>
+        <div style="font-size:12px;color:var(--muted);margin-bottom:10px;font-style:italic">${parsed.justificativa || ''}</div>
+        <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:10px">
+          ${[['II', parsed.ii],['IPI', parsed.ipi],['PIS', parsed.pis],['COFINS', parsed.cofins]].map(([l,v])=>`
+          <div style="background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:8px;text-align:center">
+            <div style="font-size:10px;color:var(--muted);font-weight:600">${l}</div>
+            <div style="font-size:15px;font-weight:700;color:var(--accent)">${v||'—'}</div>
+          </div>`).join('')}
+        </div>
+        ${parsed.li_necessaria ? '<div style="padding:6px 10px;background:rgba(239,68,68,.08);border:1px solid rgba(239,68,68,.2);border-radius:6px;font-size:12px;color:var(--red);margin-bottom:6px">⚠️ Produto sujeito a <strong>Licença de Importação (LI)</strong></div>' : ''}
+        ${parsed.controles?.length ? `<div style="padding:6px 10px;background:rgba(249,115,22,.08);border:1px solid rgba(249,115,22,.2);border-radius:6px;font-size:12px;color:var(--accent);margin-bottom:6px">🏛️ Órgãos anuentes: <strong>${parsed.controles.join(', ')}</strong></div>` : ''}
+        ${parsed.ex_tarifario ? `<div style="padding:6px 10px;background:rgba(34,197,94,.08);border:1px solid rgba(34,197,94,.2);border-radius:6px;font-size:12px;color:var(--green);margin-bottom:6px">✅ Ex-tarifário disponível: <strong>${parsed.ex_tarifario}</strong></div>` : ''}
+        ${parsed.alertas?.length ? `<div style="margin-top:6px"><div style="font-size:11px;font-weight:600;color:var(--muted);margin-bottom:4px">ALERTAS:</div>${parsed.alertas.map(a=>`<div style="font-size:12px;padding:3px 0;color:var(--yellow)">⚠️ ${a}</div>`).join('')}</div>` : ''}
+        <div style="margin-top:10px;display:flex;gap:8px">
+          <button onclick="document.getElementById('ncm-code-input').value='${parsed.ncm||''}';consultarAliquotas()" style="padding:6px 12px;background:var(--accent);color:#fff;border:none;border-radius:6px;font-size:12px;cursor:pointer;font-family:'Inter',sans-serif">Confirmar NCM</button>
+          <a href="https://portalunico.siscomex.gov.br/classif/#/sumario?origem=menu" target="_blank" style="padding:6px 12px;background:var(--surface);border:1px solid var(--border);color:var(--text);border-radius:6px;font-size:12px;text-decoration:none;display:inline-flex;align-items:center;gap:4px">🔗 Validar no Classif</a>
+        </div>
+      </div>`;
+  } catch(e) {
+    result.innerHTML = `<span style="color:var(--red)">❌ Erro: ${e.message}</span>`;
+  }
+}
+
+// ── Consulta NCM na API pública do Classif (Portal Único) ────────────────────
+let ncmTableCache = null; // cache da tabela NCM
+
+async function carregarTabelaNCM() {
+  if (ncmTableCache) return ncmTableCache;
+  try {
+    // API pública do Classif — sem autenticação, atualizada diariamente
+    const CLASSIF_URL = 'https://portalunico.siscomex.gov.br/classif/api/publico/nomenclatura/download/json';
+    const res = await fetch(CLASSIF_URL, {
+      headers: { 'Accept': 'application/json' }
+    });
+    if (!res.ok) throw new Error('CORS/HTTP ' + res.status);
+    const data = await res.json();
+    ncmTableCache = data;
+    return data;
+  } catch(e) {
+    console.warn('Classif API bloqueada por CORS, usando IA como fallback:', e.message);
+    return null;
+  }
+}
+
+function formatarNCM(raw) {
+  const d = raw.replace(/[^0-9]/g,'');
+  if (d.length >= 8) return `${d.slice(0,4)}.${d.slice(4,6)}.${d.slice(6,8)}`;
+  return raw;
+}
+
+async function consultarAliquotas() {
+  const ncmRaw = document.getElementById('ncm-code-input').value;
+  const ncm8 = ncmRaw.replace(/[^0-9]/g,'');
+  if (ncm8.length < 8) { showToast('Informe o NCM com 8 dígitos'); return; }
+  const ncmFmt = formatarNCM(ncm8);
+  const result = document.getElementById('ncm-result');
+
+  result.innerHTML = '<div style="color:var(--muted);font-size:13px">⏳ Consultando tabela NCM do Portal Único...</div>';
+
+  // 1) Tenta API pública do Classif
+  let descricaoClassif = null;
+  try {
+    const tabela = await carregarTabelaNCM();
+    if (tabela && tabela.Nomenclaturas) {
+      const item = tabela.Nomenclaturas.find(n => n.Codigo && n.Codigo.replace(/[^0-9]/g,'') === ncm8);
+      if (item) {
+        descricaoClassif = item.Descricao || item.descricao;
+      }
+    }
+  } catch(e) { /* CORS bloqueado — usa IA */ }
+
+  // 2) Usa IA para alíquotas e tratamento tributário (TEC/TTCE)
+  result.innerHTML = '<div style="color:var(--muted);font-size:13px">⏳ Consultando alíquotas e tratamento tributário via IA...</div>';
+  try {
+    const promptExtra = descricaoClassif ? `Descrição oficial Classif: "${descricaoClassif}"` : '';
+    const res = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'anthropic-version': '2023-06-01', 'anthropic-dangerous-direct-browser-access': 'true' },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-6',
+        max_tokens: 1000,
+        messages: [{
+          role: 'user',
+          content: `NCM: ${ncmFmt}
+${promptExtra}
+
+Você é especialista em legislação aduaneira brasileira. Com base na TEC (Tarifa Externa Comum) e tratamentos tributários vigentes, informe os dados deste NCM para importação no Brasil.
+
+Responda APENAS em JSON válido sem markdown:
+{
+  "ncm": "${ncmFmt}",
+  "descricao": "descrição completa do NCM",
+  "unidade_estatistica": "UN/KG/PAR/etc",
+  "ii": "X%",
+  "ipi": "X%",
+  "pis": "2,10%",
+  "cofins": "9,65%",
+  "antidumping": "não aplicável ou valor",
+  "li_necessaria": true/false,
+  "orgaos_anuentes": ["INMETRO","ANVISA","MAPA","ANATEL","DECEX","etc — somente os aplicáveis"],
+  "ex_tarifario": "número ou null",
+  "reducao_ii": "percentual de redução por acordo comercial se houver",
+  "ncm_capitulo": "descrição do capítulo",
+  "alertas": ["alertas importantes para desembaraço"],
+  "observacoes": "regime especial, notas de seção/capítulo relevantes"
+}`
+        }]
+      })
+    });
+
+    const data = await res.json();
+    const raw = data.content?.[0]?.text || '{}';
+    const p = JSON.parse(raw.replace(/\`\`\`json|\`\`\`/g,'').trim());
+
+    const desc = descricaoClassif || p.descricao || '—';
+
+    result.innerHTML = `
+    <div style="background:var(--surface2);border:1px solid var(--border);border-radius:12px;overflow:hidden">
+      <!-- Header NCM -->
+      <div style="padding:14px 16px;background:var(--accent);color:#fff">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start">
+          <div>
+            <div style="font-size:20px;font-weight:800;letter-spacing:1px">${p.ncm}</div>
+            <div style="font-size:12px;opacity:.9;margin-top:2px">${p.ncm_capitulo||''}</div>
+          </div>
+          <div style="text-align:right;font-size:12px;opacity:.9">
+            Unidade: <strong>${p.unidade_estatistica||'—'}</strong>
+          </div>
+        </div>
+        <div style="font-size:13px;font-weight:600;margin-top:8px;line-height:1.4">${desc}</div>
+        ${descricaoClassif ? '<div style="font-size:10px;margin-top:4px;opacity:.8">✓ Descrição verificada na tabela NCM do Portal Único</div>' : ''}
+      </div>
+
+      <!-- Alíquotas -->
+      <div style="padding:14px 16px;border-bottom:1px solid var(--border)">
+        <div style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:10px">Alíquotas — Importação</div>
+        <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px">
+          ${[['II',p.ii,'#f97316'],['IPI',p.ipi,'#8b5cf6'],['PIS',p.pis,'#06b6d4'],['COFINS',p.cofins,'#10b981']].map(([l,v,cor])=>`
+          <div style="background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:10px;text-align:center">
+            <div style="font-size:10px;color:var(--muted);font-weight:700;text-transform:uppercase;margin-bottom:4px">${l}</div>
+            <div style="font-size:17px;font-weight:800;color:${cor}">${v||'—'}</div>
+          </div>`).join('')}
+        </div>
+        ${p.antidumping && p.antidumping !== 'não aplicável' ? `
+        <div style="margin-top:8px;padding:6px 10px;background:rgba(239,68,68,.08);border:1px solid rgba(239,68,68,.2);border-radius:6px;font-size:12px;color:var(--red)">
+          ⚠️ Direito antidumping: <strong>${p.antidumping}</strong>
+        </div>` : ''}
+        ${p.reducao_ii ? `
+        <div style="margin-top:6px;padding:6px 10px;background:rgba(34,197,94,.08);border:1px solid rgba(34,197,94,.2);border-radius:6px;font-size:12px;color:var(--green)">
+          ✅ Redução de II por acordo comercial: <strong>${p.reducao_ii}</strong>
+        </div>` : ''}
+        ${p.ex_tarifario ? `
+        <div style="margin-top:6px;padding:6px 10px;background:rgba(34,197,94,.08);border:1px solid rgba(34,197,94,.2);border-radius:6px;font-size:12px;color:var(--green)">
+          ✅ Ex-tarifário disponível: <strong>${p.ex_tarifario}</strong>
+        </div>` : ''}
+      </div>
+
+      <!-- Controles -->
+      <div style="padding:14px 16px;border-bottom:1px solid var(--border)">
+        <div style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px">Tratamento Administrativo</div>
+        ${p.li_necessaria ? '<div style="padding:6px 10px;background:rgba(239,68,68,.08);border:1px solid rgba(239,68,68,.2);border-radius:6px;font-size:12px;color:var(--red);margin-bottom:6px">⚠️ <strong>Licença de Importação (LI) obrigatória</strong> — registrar antes do embarque</div>' : '<div style="padding:6px 10px;background:rgba(34,197,94,.08);border:1px solid rgba(34,197,94,.2);border-radius:6px;font-size:12px;color:var(--green);margin-bottom:6px">✅ Dispensa de Licença de Importação</div>'}
+        ${p.orgaos_anuentes?.length ? `<div style="padding:6px 10px;background:rgba(249,115,22,.08);border:1px solid rgba(249,115,22,.2);border-radius:6px;font-size:12px;color:var(--accent)">🏛️ Órgãos anuentes: <strong>${p.orgaos_anuentes.join(', ')}</strong></div>` : ''}
+      </div>
+
+      <!-- Alertas e Observações -->
+      ${(p.alertas?.length || p.observacoes) ? `
+      <div style="padding:14px 16px;border-bottom:1px solid var(--border)">
+        ${p.alertas?.length ? p.alertas.map(a=>`<div style="font-size:12px;padding:3px 0;color:var(--yellow)">⚠️ ${a}</div>`).join('') : ''}
+        ${p.observacoes ? `<div style="font-size:12px;color:var(--muted);margin-top:6px">${p.observacoes}</div>` : ''}
+      </div>` : ''}
+
+      <!-- Ações -->
+      <div style="padding:12px 16px;display:flex;gap:8px;flex-wrap:wrap">
+        <a href="https://portalunico.siscomex.gov.br/classif/#/sumario?perfil=publico" target="_blank"
+           style="padding:7px 14px;background:var(--accent);color:#fff;border-radius:7px;font-size:12px;font-weight:600;text-decoration:none;display:inline-flex;align-items:center;gap:5px">
+          🔗 Validar no Classif — Portal Único
+        </a>
+        <button onclick="document.getElementById('s-usd') && simCalc()" 
+           onclick="preencherNCMNoSimulador('${p.ncm}','${p.ii}','${p.ipi}','${p.pis}','${p.cofins}')"
+           style="padding:7px 14px;background:var(--surface);border:1px solid var(--border);color:var(--text);border-radius:7px;font-size:12px;font-weight:600;cursor:pointer;font-family:'Inter',sans-serif">
+          📊 Usar no Simulador
+        </button>
+      </div>
+    </div>`;
+
+  } catch(e) {
+    result.innerHTML = `<div style="color:var(--red);font-size:13px">❌ Erro: ${e.message}</div>`;
+  }
+}
+
+function preencherNCMNoSimulador(ncm, ii, ipi, pis, cofins) {
+  showSubtab('simulador');
+  showSimTab('itens');
+  const sim = getSimData(currentProcId);
+  if (sim.itens.length === 0) simAddItem();
+  const last = sim.itens.length - 1;
+  sim.itens[last].ncm = ncm;
+  sim.itens[last].ii = parseFloat((ii||'0').replace('%','').replace(',','.')) || 0;
+  sim.itens[last].ipi = parseFloat((ipi||'0').replace('%','').replace(',','.')) || 0;
+  sim.itens[last].pis = parseFloat((pis||'0').replace(',','.')) || 2.1;
+  sim.itens[last].cofins = parseFloat((cofins||'0').replace(',','.')) || 9.65;
+  simCalc();
+  showToast('✅ NCM e alíquotas preenchidos no Simulador!');
+}
 
 // ─── PTAX BACEN ──────────────────────────────────────────────────────────────
 async function buscarPTAX() {
