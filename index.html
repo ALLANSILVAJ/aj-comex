@@ -262,9 +262,47 @@ nav{display:flex;align-items:center;justify-content:space-between;padding:0 28px
     <span id="drive-status" onclick="authorizeDrive()" title="Clique para sincronizar com Google Drive" style="font-size:11px;font-weight:600;color:#f97316;cursor:pointer;padding:5px 10px;border:1px solid rgba(249,115,22,.4);border-radius:6px;transition:all .2s;white-space:nowrap">☁️ Conectar Drive</span>
     <button onclick="importarDados()" title="Restaurar backup" style="background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.2);color:rgba(255,255,255,.7);padding:5px 10px;border-radius:6px;font-size:12px;cursor:pointer;font-family:'Inter',sans-serif;">📂 Importar</button>
     <button onclick="exportarDados()" title="Exportar backup dos dados" style="background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.2);color:rgba(255,255,255,.7);padding:5px 10px;border-radius:6px;font-size:12px;cursor:pointer;font-family:'Inter',sans-serif;">💾 Backup</button>
+    <button onclick="openSettings()" title="Configurações do sistema" style="background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.2);color:rgba(255,255,255,.7);padding:5px 10px;border-radius:6px;font-size:12px;cursor:pointer;font-family:'Inter',sans-serif;">⚙️</button>
     <button class="btn-new" onclick="openModal()">+ Novo Processo</button>
   </div>
 </nav>
+
+<!-- MODAL CONFIGURAÇÕES -->
+<div id="modal-settings" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:300;align-items:center;justify-content:center;padding:20px;">
+  <div style="background:var(--surface);border:1px solid var(--border);border-radius:16px;width:100%;max-width:500px;box-shadow:0 20px 60px rgba(0,0,0,.2);">
+    <div style="display:flex;justify-content:space-between;align-items:center;padding:20px 24px;border-bottom:1px solid var(--border);">
+      <div style="font-weight:700;font-size:16px;">⚙️ Configurações do AJ-COMEX</div>
+      <button onclick="closeSettings()" style="background:none;border:none;color:var(--muted);font-size:20px;cursor:pointer;border-radius:6px;padding:4px;">✕</button>
+    </div>
+    <div style="padding:24px;display:flex;flex-direction:column;gap:20px;">
+      <div>
+        <div style="font-size:13px;font-weight:700;margin-bottom:6px;">🤖 Chave de API — Anthropic (IA)</div>
+        <div style="font-size:12px;color:var(--muted);margin-bottom:10px;">Necessária para análise de documentos (CI, Packing List, HBL) e consulta NCM com IA. Obtida em <a href="https://console.anthropic.com/" target="_blank" style="color:var(--accent)">console.anthropic.com</a>. Armazenada apenas no seu navegador.</div>
+        <input id="cfg-apikey" type="password" placeholder="sk-ant-api03-..." style="width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:10px 12px;color:var(--text);font-size:13px;font-family:'JetBrains Mono',monospace;outline:none;">
+        <div style="display:flex;gap:8px;margin-top:8px;align-items:center;">
+          <button onclick="saveApiKey()" style="padding:7px 16px;background:var(--accent);color:#fff;border:none;border-radius:7px;font-size:12px;font-weight:600;cursor:pointer;font-family:'Inter',sans-serif;">Salvar chave</button>
+          <button onclick="testApiKey()" style="padding:7px 16px;background:var(--surface2);color:var(--text);border:1px solid var(--border);border-radius:7px;font-size:12px;font-weight:600;cursor:pointer;font-family:'Inter',sans-serif;">Testar conexão</button>
+          <span id="cfg-apikey-status" style="font-size:12px;color:var(--muted);"></span>
+        </div>
+      </div>
+      <div style="border-top:1px solid var(--border);padding-top:16px;">
+        <div style="font-size:13px;font-weight:700;margin-bottom:6px;">☁️ Google Drive</div>
+        <div style="font-size:12px;color:var(--muted);margin-bottom:10px;">Sincronização automática dos dados com o Google Drive. O token expira a cada hora — reconecte se necessário.</div>
+        <div style="display:flex;gap:8px;align-items:center;">
+          <button onclick="authorizeDrive();closeSettings();" style="padding:7px 16px;background:var(--surface2);color:var(--text);border:1px solid var(--border);border-radius:7px;font-size:12px;font-weight:600;cursor:pointer;font-family:'Inter',sans-serif;">Reconectar Drive</button>
+          <button onclick="forceSyncDrive()" style="padding:7px 16px;background:var(--surface2);color:var(--text);border:1px solid var(--border);border-radius:7px;font-size:12px;font-weight:600;cursor:pointer;font-family:'Inter',sans-serif;">Forçar sincronização</button>
+        </div>
+      </div>
+      <div style="border-top:1px solid var(--border);padding-top:16px;">
+        <div style="font-size:13px;font-weight:700;margin-bottom:6px;">💾 Dados locais</div>
+        <div style="display:flex;gap:8px;">
+          <button onclick="exportarDados();closeSettings();" style="padding:7px 16px;background:var(--surface2);color:var(--text);border:1px solid var(--border);border-radius:7px;font-size:12px;font-weight:600;cursor:pointer;font-family:'Inter',sans-serif;">📥 Exportar backup JSON</button>
+          <button onclick="closeSettings();setTimeout(importarDados,100);" style="padding:7px 16px;background:var(--surface2);color:var(--text);border:1px solid var(--border);border-radius:7px;font-size:12px;font-weight:600;cursor:pointer;font-family:'Inter',sans-serif;">📤 Importar backup JSON</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
 
 <!-- DASHBOARD -->
 <div id="page-dashboard" class="page active">
@@ -1335,6 +1373,8 @@ const DRIVE_FILE_ID = '1eVMjmxnnExKjau315EDZ32OKAgB3T5B0';
 // ── GOOGLE DRIVE SYNC ────────────────────────────────────────────────────────
 let gisToken = null;
 let driveReady = false;
+let tokenExpiresAt = 0;      // timestamp ms — controle de expiração
+let tokenRenewTimer = null;  // setInterval handle
 
 function initGoogleAuth() {
   if (window.google && window.google.accounts) { requestTokenSilent(); return; }
@@ -1355,15 +1395,52 @@ function buildTokenClient(prompt, callback) {
   });
 }
 
-function requestTokenSilent() {
+function onTokenReceived(resp, loadData) {
+  if (resp && resp.access_token) {
+    gisToken = resp.access_token;
+    driveReady = true;
+    // Token GIS dura ~3600s — renova 5min antes
+    tokenExpiresAt = Date.now() + (resp.expires_in ? (resp.expires_in - 300) * 1000 : 3300000);
+    updateDriveStatus(true);
+    scheduleTokenRenewal();
+    if (loadData) loadFromDrive();
+  } else {
+    driveReady = false;
+    updateDriveStatus(false);
+  }
+}
+
+function scheduleTokenRenewal() {
+  if (tokenRenewTimer) clearTimeout(tokenRenewTimer);
+  const delay = Math.max(tokenExpiresAt - Date.now(), 60000); // mínimo 1min
+  tokenRenewTimer = setTimeout(() => {
+    console.log('Drive: renovando token automaticamente...');
+    renewTokenSilent();
+  }, delay);
+}
+
+function renewTokenSilent() {
   try {
     buildTokenClient('', (resp) => {
       if (resp && resp.access_token) {
-        gisToken = resp.access_token; driveReady = true;
-        updateDriveStatus(true);
-        loadFromDrive();
-      } else { updateDriveStatus(false); }
+        onTokenReceived(resp, false); // não recarrega dados — só renova token
+        console.log('Drive: token renovado ✓');
+      } else {
+        driveReady = false;
+        updateDriveStatus(false);
+        showToast('⚠️ Drive: sessão expirada — clique em ⚙️ para reconectar');
+      }
     }).requestAccessToken({ prompt: '' });
+  } catch(e) {
+    driveReady = false;
+    updateDriveStatus(false);
+  }
+}
+
+function requestTokenSilent() {
+  try {
+    buildTokenClient('', (resp) => onTokenReceived(resp, true))
+      .requestAccessToken({ prompt: '' });
   } catch(e) { updateDriveStatus(false); }
 }
 
@@ -1374,12 +1451,21 @@ function authorizeDrive() {
   }
   buildTokenClient('consent', (resp) => {
     if (resp && resp.access_token) {
-      gisToken = resp.access_token; driveReady = true;
-      updateDriveStatus(true);
+      onTokenReceived(resp, false);
       showToast('✅ Drive conectado! Carregando dados...');
       loadFromDrive();
     }
   }).requestAccessToken({ prompt: 'consent' });
+}
+
+async function forceSyncDrive() {
+  if (!driveReady || !gisToken) {
+    showToast('⚠️ Drive não conectado. Clique em Reconectar Drive.');
+    return;
+  }
+  showToast('☁️ Sincronizando com o Drive...');
+  await saveToDrive();
+  showToast('✅ Dados salvos no Drive com sucesso!');
 }
 
 async function loadFromDrive() {
@@ -1391,12 +1477,30 @@ async function loadFromDrive() {
     );
     if (!res.ok) throw new Error('HTTP ' + res.status);
     const data = await res.json();
-    if (!data || !data.clientes) return;
-    clientes     = data.clientes.length     ? data.clientes     : clientes;
-    analistas    = data.analistas.length    ? data.analistas    : analistas;
-    despachantes = data.despachantes.length ? data.despachantes : despachantes;
-    tradings     = data.tradings.length     ? data.tradings     : tradings;
-    adquirentes  = data.adquirentes.length  ? data.adquirentes  : adquirentes;
+    if (!data || (!data.clientes && !data.processes)) return;
+
+    // Proteção contra sobrescrita: compara timestamps
+    const localRaw = localStorage.getItem(DB_KEY);
+    if (localRaw) {
+      try {
+        const localData = JSON.parse(localRaw);
+        const localTs = localData._atualizado ? new Date(localData._atualizado).getTime() : 0;
+        const driveTs = data._atualizado ? new Date(data._atualizado).getTime() : 0;
+        if (localTs > driveTs && localData.processes && localData.processes.length >= (data.processes||[]).length) {
+          // Dados locais são mais recentes — sobe para o Drive em vez de sobrescrever
+          console.log('Drive: dados locais mais recentes — fazendo upload em vez de download');
+          showToast('☁️ Dados locais mais recentes — sincronizando para o Drive...');
+          await saveToDrive();
+          return;
+        }
+      } catch(e) {}
+    }
+
+    clientes     = (data.clientes     && data.clientes.length)     ? data.clientes     : clientes;
+    analistas    = (data.analistas    && data.analistas.length)    ? data.analistas    : analistas;
+    despachantes = (data.despachantes && data.despachantes.length) ? data.despachantes : despachantes;
+    tradings     = (data.tradings     && data.tradings.length)     ? data.tradings     : tradings;
+    adquirentes  = (data.adquirentes  && data.adquirentes.length)  ? data.adquirentes  : adquirentes;
     if (data.processes && data.processes.length) processes = data.processes;
     if (data.nextAJNumber) nextAJNumber = data.nextAJNumber;
     saveLocalOnly();
@@ -1412,8 +1516,14 @@ async function loadFromDrive() {
 async function saveToDrive() {
   saveLocalOnly();
   if (!driveReady || !gisToken) return;
+  // Verifica expiração antes de salvar
+  if (Date.now() > tokenExpiresAt) {
+    console.warn('Drive: token expirado — aguardando renovação');
+    renewTokenSilent();
+    return;
+  }
   try {
-    await fetch(
+    const res = await fetch(
       `https://www.googleapis.com/upload/drive/v3/files/${DRIVE_FILE_ID}?uploadType=media`,
       {
         method: 'PATCH',
@@ -1421,6 +1531,16 @@ async function saveToDrive() {
         body: JSON.stringify(buildDBPayload())
       }
     );
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      if (res.status === 401) {
+        // Token inválido — força renovação
+        driveReady = false;
+        updateDriveStatus(false);
+        showToast('⚠️ Sessão Drive expirada — clique em ⚙️ para reconectar');
+      }
+      console.warn('Drive: erro ao salvar →', res.status, err);
+    }
   } catch(e) { console.warn('Drive: falha ao salvar →', e.message); }
 }
 
@@ -1926,6 +2046,13 @@ function loadDocsFromProcess(procId) {
 }
 
 async function analisarDocumentos() {
+  const apiKey = getApiKey();
+  if (!apiKey) {
+    showToast('⚠️ Configure a chave de API em ⚙️ Configurações');
+    openSettings();
+    return;
+  }
+
   const btn = document.getElementById('btn-analisar');
   const panel = document.getElementById('ia-result-panel');
   const content = document.getElementById('ia-result-content');
@@ -2005,7 +2132,7 @@ Seja preciso, objetivo e use terminologia técnica aduaneira brasileira.`
   try {
     const res = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'anthropic-version': '2023-06-01', 'anthropic-dangerous-direct-browser-access': 'true' },
+      headers: { 'Content-Type': 'application/json', 'anthropic-version': '2023-06-01', 'anthropic-dangerous-direct-browser-access': 'true', 'x-api-key': getApiKey() },
       body: JSON.stringify({
         model: 'claude-sonnet-4-6',
         max_tokens: 4000,
@@ -2035,6 +2162,8 @@ Seja preciso, objetivo e use terminologia técnica aduaneira brasileira.`
 
 // ── Consulta NCM por descrição ────────────────────────────────────────────────
 async function consultarNCM() {
+  const apiKey = getApiKey();
+  if (!apiKey) { showToast('⚠️ Configure a chave de API em ⚙️ Configurações'); openSettings(); return; }
   const desc = document.getElementById('ncm-desc-input').value.trim();
   if (!desc) { showToast('Informe a descrição do produto'); return; }
   const result = document.getElementById('ncm-result');
@@ -2043,7 +2172,7 @@ async function consultarNCM() {
   try {
     const res = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'anthropic-version': '2023-06-01', 'anthropic-dangerous-direct-browser-access': 'true' },
+      headers: { 'Content-Type': 'application/json', 'anthropic-version': '2023-06-01', 'anthropic-dangerous-direct-browser-access': 'true', 'x-api-key': getApiKey() },
       body: JSON.stringify({
         model: 'claude-sonnet-4-6',
         max_tokens: 1000,
@@ -2189,7 +2318,7 @@ async function consultarAliquotas() {
     const promptExtra = descricaoClassif ? `Descrição oficial Classif: "${descricaoClassif}"` : '';
     const res = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'anthropic-version': '2023-06-01', 'anthropic-dangerous-direct-browser-access': 'true' },
+      headers: { 'Content-Type': 'application/json', 'anthropic-version': '2023-06-01', 'anthropic-dangerous-direct-browser-access': 'true', 'x-api-key': getApiKey() },
       body: JSON.stringify({
         model: 'claude-sonnet-4-6',
         max_tokens: 1000,
@@ -3284,6 +3413,64 @@ function showSubtab(name) {
   if (btn) { btn.style.color = 'var(--accent)'; btn.style.borderBottom = '2px solid var(--accent)'; }
 }
 
+// ─── CONFIGURAÇÕES ────────────────────────────────────────────────────────
+function openSettings() {
+  const modal = document.getElementById('modal-settings');
+  modal.style.display = 'flex';
+  // Carrega chave salva (mascarada)
+  const saved = localStorage.getItem('ajcomex_anthropic_key');
+  const inp = document.getElementById('cfg-apikey');
+  if (saved) { inp.value = saved; inp.placeholder = 'Chave salva ✓'; }
+  else { inp.value = ''; inp.placeholder = 'sk-ant-api03-...'; }
+  document.getElementById('cfg-apikey-status').textContent = saved ? '✅ Chave configurada' : '⚠️ Sem chave configurada';
+}
+
+function closeSettings() {
+  document.getElementById('modal-settings').style.display = 'none';
+}
+
+function saveApiKey() {
+  const val = document.getElementById('cfg-apikey').value.trim();
+  if (!val) { showToast('Cole a chave antes de salvar'); return; }
+  if (!val.startsWith('sk-ant-')) { showToast('⚠️ Chave inválida — deve começar com sk-ant-'); return; }
+  localStorage.setItem('ajcomex_anthropic_key', val);
+  document.getElementById('cfg-apikey-status').textContent = '✅ Chave salva!';
+  showToast('✅ Chave de API salva com sucesso!');
+}
+
+async function testApiKey() {
+  const key = localStorage.getItem('ajcomex_anthropic_key') || document.getElementById('cfg-apikey').value.trim();
+  if (!key) { showToast('Salve a chave primeiro'); return; }
+  document.getElementById('cfg-apikey-status').textContent = '⏳ Testando...';
+  try {
+    const res = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'anthropic-version': '2023-06-01',
+        'anthropic-dangerous-direct-browser-access': 'true',
+        'x-api-key': key
+      },
+      body: JSON.stringify({ model: 'claude-haiku-4-5-20251001', max_tokens: 10, messages: [{ role: 'user', content: 'ok' }] })
+    });
+    if (res.ok) {
+      document.getElementById('cfg-apikey-status').textContent = '✅ Chave válida!';
+      showToast('✅ API Anthropic funcionando!');
+    } else {
+      const err = await res.json().catch(() => ({}));
+      document.getElementById('cfg-apikey-status').textContent = '❌ Chave inválida';
+      showToast('❌ Chave inválida: ' + (err.error?.message || res.status));
+    }
+  } catch(e) {
+    document.getElementById('cfg-apikey-status').textContent = '❌ Erro de conexão';
+    showToast('❌ Erro: ' + e.message);
+  }
+}
+
+function getApiKey() {
+  return localStorage.getItem('ajcomex_anthropic_key') || '';
+}
+
 // ─── BACKUP / EXPORTAR ────────────────────────────────────────────────────
 function exportarDados() {
   const dados = {processes, clientes, analistas, despachantes, tradings, adquirentes, nextAJNumber};
@@ -3725,6 +3912,10 @@ function showPage(name) {
 }
 
 // ─── CLOCK ───────────────────────────────────────────────────────────────
+// Fecha modal settings ao clicar fora
+document.getElementById('modal-settings').addEventListener('click', function(e) {
+  if (e.target === this) closeSettings();
+});
 setInterval(()=>{ document.getElementById('clock').textContent = new Date().toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'}); },1000);
 document.getElementById('clock').textContent = new Date().toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'});
 
